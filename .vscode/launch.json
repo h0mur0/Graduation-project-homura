@@ -1,0 +1,28 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Debug main program",  // 配置名称
+            "type": "cppdbg",  // 使用 C++ 调试类型
+            "request": "launch",  // 启动调试请求
+            "program": "${workspaceFolder}/main",  // 可执行文件路径
+            "args": [],  // 调试时传递给程序的命令行参数
+            "stopAtEntry": false,  // 不在入口处暂停执行
+            "cwd": "${workspaceFolder}",  // 当前工作目录为项目文件夹
+            "environment": [],
+            "externalConsole": false,  // 不使用外部控制台
+            "MIMode": "gdb",  // 使用 GDB 作为调试器
+            "miDebuggerPath": "C:\\msys64\\ucrt64\\bin\\gdb.exe",  // GDB 路径（请根据需要调整路径）
+            "preLaunchTask": "build",  // 启动调试前先执行 "build" 任务
+            "logging": {
+                "engineLogging": true,
+                "trace": true,  // 打开调试器输出的日志
+                "moduleLoad": false
+            },
+            "sourceFileMap": {
+                "/mnt/c": "C:\\",  // 如果使用 WSL 或其他虚拟环境，确保路径映射正确
+                "/mnt/d": "D:\\"
+            }
+        }
+    ]
+}
