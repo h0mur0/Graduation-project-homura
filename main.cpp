@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <map>
+#include <memory>  // 引入智能指针头文件
 #include "client.h"
 #include "leader.h"
 #include "database.h"
@@ -15,12 +16,12 @@ using namespace std;
 
 vector<client> clients;  // 客户端列表
 vector<database> databases;  // 数据库列表
-leader* ld;  // 领导者
-client* special_client;  // 特殊客户端
+shared_ptr<leader> ld;  // 领导者智能指针
+shared_ptr<client> special_client;  // 特殊客户端智能指针
 int R;  // 领导者的客户端数量
 int L;  // 素数 L
 int c;  // 随机系数
-channel* chan;
+shared_ptr<channel> chan;  // 渠道智能指针
 
 // 初始化
 void initial() {
@@ -36,19 +37,20 @@ void initial() {
     // 创建客户端、领导者和数据库
     for (int i = 0; i < M; i++) {
         if (i == leader_id) {
-            ld = new leader(P[i], i);  // 创建领导者
+            ld = make_shared<leader>(P[i], i);  // 创建领导者
             R = P[i].size();  // 领导者元素个数
         } else {
             if(i == sp_id){
-                special_client = new client("special", i); // 创建特殊客户端
-                clients.push_back(*special_client);
+                // 创建特殊客户端，并将其指针赋给 special_client
+                special_client = make_shared<client>("special", i);
+                //clients.push_back(*special_client);  // 将其副本添加到客户端列表
             }
             else{
-                client one_client("normal", i);  // 创建正常客户端
+                // 创建正常客户端并加入到列表
+                client one_client("normal", i);  
                 clients.push_back(one_client);
             }
             
-
             // 为每个客户端创建数据库
             for (int j = 0; j < N[i]; j++) {
                 database one_database(P[i], i, j);  // 创建数据库
@@ -56,6 +58,9 @@ void initial() {
             }
         }
     }
+
+    // 创建 channel 的智能指针
+    chan = make_shared<channel>();
 }
 
 // 查询阶段
@@ -69,15 +74,21 @@ map<int, vector<tuple<int, int, int>>> query() {
 
 // 生成随机性并发送给数据库
 void create_randomness() {
+    // 正常客户端
     for (auto& cl : clients) {
         int eta = ceil(R / (N[cl.client_id] - 1.0));
         cl.create_and_send_local_randomness(L, R);
         cl.create_and_send_relatived_randomness(L, R);
-        if (cl.state == "normal") {
-            chan->client_to_client(cl, *special_client);  // 正常客户端发送给特殊客户端
-        }
+        chan->client_to_client(cl, *special_client);  // 正常客户端发送给特殊客户端
         chan->client_to_databases(cl, databases);  // 客户端发送给数据库
     }
+    //特殊客户端
+    client cl = *special_client;
+    int eta = ceil(R / (N[cl.client_id] - 1.0));
+    cl.create_and_send_local_randomness(L, R);
+    cl.create_and_send_relatived_randomness(L, R);
+    //chan->client_to_client(cl, *special_client);  // 正常客户端发送给特殊客户端
+    chan->client_to_databases(cl, databases);  // 客户端发送给数据库
     c = rand() % (L - 1) + 1;  // 随机生成系数 c
 }
 

@@ -1,5 +1,7 @@
+#include <iostream>
 #include <vector>
 #include <cmath>
+#include <string>
 
 #include "database.h"
 
@@ -22,9 +24,11 @@ vector<int> database::create_incidence_vector() {
 // 创建并发送回复
 void database::create_and_send_reply(const vector<int>& X, int c, int L, int R) {
     auto s = database_recv_from_client_s;
+    //cout << client_id << " " << database_id << ":";
     auto t = database_recv_from_client_t;
-    int eta = ceil(R / (N[client_id] - 1));
-    for (size_t i = 0; i < eta; i++) {
+    //cout << string(s.begin(),s.end()) <<" " << string(t.begin(),t.end()) << "\n";
+    int eta = ceil(R / (N[client_id] - 1.0));
+    for (size_t i = 0; i < database_recv_from_leader.size(); i++) {
         int reply = c * (dot_product(X, database_recv_from_leader[i]) + s[i] + t[i]) % L;
         database_send.push_back(reply);
     }

@@ -16,7 +16,7 @@ client::client(string state, int client_id) : state(state), client_id(client_id)
 
 // 创建并发送本地随机数
 void client::create_and_send_local_randomness(int L, int R) {
-    int eta = ceil(R / (N[client_id] - 1));
+    int eta = ceil(R / (N[client_id] - 1.0));
     auto rv = generate_random_vector(L, eta);
     for (int i = 0; i < N[client_id]; i++) {
         for (int elem : rv) {
@@ -27,7 +27,7 @@ void client::create_and_send_local_randomness(int L, int R) {
 
 // 创建并发送相关随机数
 void client::create_and_send_relatived_randomness(int L, int R) {
-    int eta = ceil(R / (N[client_id] - 1));
+    int eta = ceil(R / (N[client_id] - 1.0));
     vector<int> random_vector;
     if (state == "normal") {
         random_vector = generate_random_vector(L, R);
@@ -44,13 +44,19 @@ void client::create_and_send_relatived_randomness(int L, int R) {
         }
     }
 
-    auto random_vector_iter = random_vector.begin();
+    int counter = 0;
     vector<vector<int>> rv(N[client_id]);
     for (int j = 0; j < eta; j++) {
         for (int i = 0; i < N[client_id]; i++) {
-            int random = (i == 0) ? 0 : *random_vector_iter++;
+            int random = 0;
+            if (i != 0){
+                random = random_vector[counter];
+                counter++;
+            }
             rv[i].push_back(random);
+            if(counter==R)break;
         }
+        if(counter==R)break;
     }
 
     for (int i = 0; i < N[client_id]; i++) {
