@@ -11,7 +11,7 @@
 using namespace std;
 
 // 构造函数实现
-leader::leader(vector<int>& P_leader, int leader_id)
+leader::leader(vector<int>& P_leader, int leader_id, int M, vector<int>N)
     : P_leader(P_leader), leader_id(leader_id) {
         leader_send = vector<vector<vector<vector<int>>>>(M);        
         leader_recv = vector<vector<vector<int>>>(M);
@@ -22,15 +22,15 @@ leader::leader(vector<int>& P_leader, int leader_id)
     }
 
 // 创建并发送查询
-map<int, vector<tuple<int, int, int>>> leader::create_and_send_query(int L) {
-    int kappa = get_kappa();
-    auto random_vector = create_random_vector(kappa, L);
-    auto element_to_position = create_and_query(random_vector, L);
+map<int, vector<tuple<int, int, int>>> leader::create_and_send_query(int L,int M,vector<int>N,int K) {
+    int kappa = get_kappa(M,N);
+    auto random_vector = create_random_vector(kappa, L,K);
+    auto element_to_position = create_and_query(random_vector, L,M,N);
     return element_to_position;
 }
 
 // 获取 kappa 值
-int leader::get_kappa() {
+int leader::get_kappa(int M, vector<int> N) {
     int R = P_leader.size();
     int kappa = 0;
     for (int i = 0; i < M - 1; i++) {
@@ -43,7 +43,7 @@ int leader::get_kappa() {
 }
 
 // 创建随机向量
-vector<vector<int>> leader::create_random_vector(int kappa, int L) {
+vector<vector<int>> leader::create_random_vector(int kappa, int L, int K) {
     vector<vector<int>> random_vector(kappa);
     for (int i = 0; i < kappa; i++) {
         random_vector[i] = generate_random_vector(L, K);
@@ -52,7 +52,7 @@ vector<vector<int>> leader::create_random_vector(int kappa, int L) {
 }
 
 // 创建并执行查询
-map<int, vector<tuple<int, int, int>>> leader::create_and_query(const vector<vector<int>>& random_vector, int L) {
+map<int, vector<tuple<int, int, int>>> leader::create_and_query(const vector<vector<int>>& random_vector, int L,int M,vector<int> N) {
     int R = P_leader.size();
     map<int, vector<tuple<int, int, int>>> element_to_position;
 

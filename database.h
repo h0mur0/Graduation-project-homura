@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "public_function.h"
-#include "para.h"
 
 class database {
 public:
@@ -20,10 +19,10 @@ public:
     database(std::vector<int>& P_client, int client_id, int database_id);
 
     // 创建和返回一个与客户端列表相关的邻接向量
-    std::vector<int> create_incidence_vector();
+    std::vector<int> create_incidence_vector(int K);
 
     // 创建并发送回复
-    void create_and_send_reply(const std::vector<int>& X, int c, int L, int R);
+    void create_and_send_reply(const std::vector<int>& X, int c, int L, int R, vector<int> N);
 };
 
 #endif // DATABASE_H

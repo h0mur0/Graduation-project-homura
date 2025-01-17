@@ -2,6 +2,12 @@
 #include <random>
 #include <cmath>
 #include <stdexcept>
+#include <string>
+#include <iostream>
+#include <cstdlib>
+#include <map>
+#include <fstream>
+#include <sstream>
 #include "public_function.h"
 
 
@@ -86,7 +92,7 @@ int select_L(int M) {
 }
 
 // 选择最优的领导者
-int select_leader(const vector<vector<int>>& P, const vector<int>& N) {
+int select_leader(const vector<vector<int>>& P, const vector<int>& N, const int& M) {
     int t = 0;
     int min_cost = 0;
 
@@ -110,4 +116,158 @@ int select_leader(const vector<vector<int>>& P, const vector<int>& N) {
         }
     }
     return t;
+}
+
+
+// 打印帮助信息
+void print_help() {
+    cout << "命令行参数说明:" << endl;
+    cout << "-m [正整数a]    : 将a赋值给变量M" << endl;
+    cout << "-t [a个文件名]  : 将a个文件名赋值给字符串向量" << endl;
+    cout << "-n [a个整数]    : 将a个整数赋值给整型向量" << endl;
+    cout << "-h              : 输出帮助信息" << endl;
+}
+
+// 解析命令行参数的函数
+void parse_args(int argc, char* argv[], int& M, vector<string>& fileNames, vector<int>& N) {
+    // 默认值
+    M = -1;
+    fileNames.clear();
+    N.clear();
+
+    // 命令行参数解析
+    int i = 1;
+    while (i < argc) {
+        string arg = argv[i];
+
+        if (arg == "-m") {
+            if (i + 1 < argc) {
+                M = stoi(argv[i + 1]);
+                if (M <= 0) {
+                    cerr << "错误: -m 参数后的值必须是正整数。" << endl;
+                    exit(1);
+                }
+                i += 2;
+            } else {
+                cerr << "错误: -m 后缺少参数。" << endl;
+                exit(1);
+            }
+        }
+        else if (arg == "-t") {
+            if (i + 1 < argc) {
+                //int count = stoi(argv[i + 1]);
+                fileNames.clear();
+                i += 1;
+
+                for (int j = 0; j < M; j++) {
+                    if (i < argc) {
+                        fileNames.push_back(argv[i]);
+                        i++;
+                    } else {
+                        cerr << "错误: -t 后缺少足够的文件名。" << endl;
+                        exit(1);
+                    }
+                }
+            } else {
+                cerr << "错误: -t 后缺少参数。" << endl;
+                exit(1);
+            }
+        }
+        else if (arg == "-n") {
+            if (i + 1 < argc) {
+                //int count = stoi(argv[i + 1]);
+                N.clear();
+                i += 1;
+
+                for (int j = 0; j < M; j++) {
+                    if (i < argc) {
+                        N.push_back(stoi(argv[i]));
+                        i++;
+                    } else {
+                        cerr << "错误: -n 后缺少足够的整数。" << endl;
+                        exit(1);
+                    }
+                }
+            } else {
+                cerr << "错误: -n 后缺少参数。" << endl;
+                exit(1);
+            }
+        }
+        else if (arg == "-h") {
+            cout << "帮助文档:" << endl;
+            cout << "-m [正整数a]    设置M的值为正整数a。" << endl;
+            cout << "-t [a个文件名]  设置文件名列表，后面必须跟a个文件名。" << endl;
+            cout << "-n [a个整数]    设置整数列表，后面必须跟a个整数。" << endl;
+            cout << "-h              输出此帮助信息。" << endl;
+            exit(0);
+        }
+        else {
+            cerr << "错误: 未知的命令行参数 " << arg << endl;
+            exit(1);
+        }
+    }
+
+    // 检查参数是否完整
+    if (M == -1) {
+        cerr << "错误: -m 参数必须指定一个正整数。" << endl;
+        exit(1);
+    }
+    if (fileNames.empty()) {
+        cerr << "错误: -t 参数必须指定至少一个文件名。" << endl;
+        exit(1);
+    }
+    if (N.empty()) {
+        cerr << "错误: -n 参数必须指定至少一个整数。" << endl;
+        exit(1);
+    }
+}
+
+
+// encode函数
+void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& data2Sk, vector<vector<int>>& P, int& K) {
+    // 遍历每个文件名
+    for (int i = 0; i < fileNames.size(); ++i) {
+        ifstream file(fileNames[i]);
+        string line;
+        vector<int> currentFileData;
+
+        // 逐行读取文件中的数据
+        while (getline(file, line)) {
+            // 处理行中的空格，可能需要去掉前后空格
+            string data = line;
+            data.erase(0, data.find_first_not_of(" \t"));
+            data.erase(data.find_last_not_of(" \t") + 1);
+
+            // 判断该数据是否已经存在于data2Sk中
+            if (data2Sk.find(data) != data2Sk.end()) {
+                // 如果存在，将当前数据的Sk值加入P[i]中
+                int existingSk = data2Sk[data];
+                currentFileData.push_back(existingSk);
+            } else {
+                // 如果不存在，新增一个Sk值
+                int newSk = Sk.size();
+                Sk.push_back(newSk);
+                data2Sk[data] = newSk;
+                currentFileData.push_back(newSk);
+            }
+        }
+
+        P.push_back(currentFileData);
+    }
+
+    // 设置K为Sk的长度
+    K = Sk.size();
+}
+
+// decode函数
+void decode(const vector<int>& intersection, const map<string, int>& data2Sk, vector<string>& intersection_string) {
+    // 遍历每个整数，将对应的字符串加入intersection_string中
+    for (int a : intersection) {
+        for (const auto& pair : data2Sk) {
+            if (pair.second == a) {
+                intersection_string.push_back(pair.first);
+                break;
+            }
+        }
+    }
 }

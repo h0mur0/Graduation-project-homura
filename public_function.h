@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <tuple>
-#include "para.h"
+#include <map>
 
 using namespace std;
 
@@ -23,6 +23,10 @@ bool is_prime(int n, int k = 20);
 int select_L(int M);
 
 // 选择最优的领导者
-int select_leader(const vector<vector<int>>& P, const vector<int>& N);
+int select_leader(const vector<vector<int>>& P, const vector<int>& N, const int& M);
+void print_help();
+void parse_args(int argc, char* argv[], int& M, vector<string>& fileNames, vector<int>& N);
+void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& data2Sk, vector<vector<int>>& P, int& K);
+void decode(const vector<int>& intersection, const map<string, int>& data2Sk, vector<string>& intersection_string);
 
 #endif // PUBLIC_FUNCTION_H

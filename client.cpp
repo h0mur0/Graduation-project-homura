@@ -7,7 +7,7 @@
 using namespace std;
 
 // 构造函数实现
-client::client(string state, int client_id) : state(state), client_id(client_id) {
+client::client(string state, int client_id, vector<int> N) : state(state), client_id(client_id) {
     client_send_to_database_s = vector<vector<int>>(N[client_id], vector<int>());
     client_send_to_database_t = vector<vector<int>>(N[client_id], vector<int>());
     client_send_to_client = vector<int>();
@@ -15,7 +15,7 @@ client::client(string state, int client_id) : state(state), client_id(client_id)
 }
 
 // 创建并发送本地随机数
-void client::create_and_send_local_randomness(int L, int R) {
+void client::create_and_send_local_randomness(int L, int R, vector<int> N) {
     int eta = ceil(R / (N[client_id] - 1.0));
     auto rv = generate_random_vector(L, eta);
     for (int i = 0; i < N[client_id]; i++) {
@@ -26,7 +26,7 @@ void client::create_and_send_local_randomness(int L, int R) {
 }
 
 // 创建并发送相关随机数
-void client::create_and_send_relatived_randomness(int L, int R) {
+void client::create_and_send_relatived_randomness(int L, int R, int M, vector<int> N) {
     int eta = ceil(R / (N[client_id] - 1.0));
     vector<int> random_vector;
     if (state == "normal") {
