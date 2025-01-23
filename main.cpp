@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
     cout << endl;
     // outFile << endl;
     auto end_time_1 = chrono::high_resolution_clock::now();
-    auto duration_1 = chrono::duration_cast<std::chrono::microseconds>(end_time_1 - st_time_1);
+    auto duration_1 = chrono::duration_cast<std::chrono::microseconds>(end_time_1 - st_time_3);
     cout << "intersection is:" << endl;
     cout << "计算时间：" << duration_1.count() << "微秒" << endl;
     cout << "通信开销：" << com_bit << endl;

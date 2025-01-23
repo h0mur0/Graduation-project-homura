@@ -233,9 +233,6 @@ void parse_args(int argc, char* argv[], int& M, vector<string>& fileNames, vecto
 
 // encode函数
 void encode(const vector<string>& fileNames, vector<int>& Sk, unordered_map<string, int>& data2Sk, vector<vector<int>>& P, int& K) {
-    // 预分配Sk的大小，最大为110000
-    Sk.reserve(110000);
-    data2Sk.reserve(110000);
 
     // 遍历每个文件名
     for (int i = 0; i < fileNames.size(); ++i) {
