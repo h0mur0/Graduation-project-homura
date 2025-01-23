@@ -1,10 +1,13 @@
 #include <iostream>
+#include <fstream>
 #include <vector>
 #include <random>
 #include <cmath>
 #include <cstdlib>
 #include <map>
 #include <memory>  // 引入智能指针头文件
+#include <chrono> // 包含计时功能
+#include <unordered_map>
 #include "client.h"
 #include "leader.h"
 #include "database.h"
@@ -17,7 +20,7 @@ int M = 0;  // 参与方数量
 vector<string> fileNames;  // 存数据的文件列表
 vector<int> N;  // 数据库数量
 vector<int> Sk; // 整型列表Sk
-map<string, int> data2Sk; // 数据到Sk的映射
+unordered_map<string, int> data2Sk; // 数据到Sk的映射
 vector<vector<int>> P(fileNames.size()); // 编码后的数据
 int K = 0; // 最终的Sk列表长度
 vector<client> clients;  // 客户端列表
@@ -28,11 +31,20 @@ int R;  // 领导者的客户端数量
 int L;  // 素数 L
 int c;  // 随机系数
 shared_ptr<channel> chan;  // 信道智能指针
+double cul_time = 0.0;
+int com_bit = 0;
+int com_round = 0;
 
 // 初始化
 void initial() {
     L = select_L(M);  // 选择一个大于 M 的素数 L
     int leader_id = select_leader(P, N, M);  // 选择领导者
+    cout << "leader is " << leader_id << endl;
+    cout << "Kp的大小：" << P[leader_id].size() << endl;
+    ofstream outFile1("output.txt",ios::app);
+    outFile1 << "leader is "<<leader_id << endl;
+    outFile1 <<"Kp的大小："<<P[leader_id].size() << endl;
+    outFile1.close();
     int sp_id = 0;
     if (leader_id == M - 1) {
         sp_id = M - 2;  // 特殊客户端 ID
@@ -114,22 +126,59 @@ vector<int> get_intersection(const map<int, vector<tuple<int, int, int>>>& eleme
 
 // 主函数
 int main(int argc, char* argv[]) {
+    ofstream outFile("output.txt",ios::app);
+    outFile << "------------------------- "<< endl;
+    auto st_time_1 = chrono::high_resolution_clock::now();
     parse_args(argc,argv,M,fileNames,N);
+    auto st_time_2 = chrono::high_resolution_clock::now();
+    auto duration_2 = chrono::duration_cast<std::chrono::microseconds>(st_time_2 - st_time_1);
+    outFile << "时间1：" << duration_2.count() << "微秒" << endl;
     encode(fileNames, Sk, data2Sk, P, K);
+    auto st_time_3 = chrono::high_resolution_clock::now();
+    auto duration_3 = chrono::duration_cast<std::chrono::microseconds>(st_time_3 - st_time_2);
+    outFile << "计算时间：" << duration_3.count() << "微秒" << endl;
     initial();  // 初始化
+    auto st_time_4 = chrono::high_resolution_clock::now();
+    auto duration_4 = chrono::duration_cast<std::chrono::microseconds>(st_time_4 - st_time_3);
+    outFile << "计算时间：" << duration_4.count() << "微秒" << endl;
 
     map<int, vector<tuple<int, int, int>>> element_to_position = query();  // 查询阶段
+    auto st_time_5 = chrono::high_resolution_clock::now();
+    auto duration_5 = chrono::duration_cast<std::chrono::microseconds>(st_time_5 - st_time_4);
+    outFile << "计算时间：" << duration_4.count() << "微秒" << endl;
     create_randomness();  // 生成并发送随机数
+    auto st_time_6 = chrono::high_resolution_clock::now();
+    auto duration_6 = chrono::duration_cast<std::chrono::microseconds>(st_time_6 - st_time_5);
+    outFile << "计算时间：" << duration_6.count() << "微秒" << endl;
     reply();  // 数据库生成并发送回复
+    auto st_time_7 = chrono::high_resolution_clock::now();
+    auto duration_7 = chrono::duration_cast<std::chrono::microseconds>(st_time_7 - st_time_6);
+    outFile << "计算时间：" << duration_7.count() << "微秒" << endl;
     vector<int> intersection = get_intersection(element_to_position);  // 获取交集
+    auto st_time_8 = chrono::high_resolution_clock::now();
+    auto duration_8 = chrono::duration_cast<std::chrono::microseconds>(st_time_8 - st_time_7);
+    outFile << "计算时间：" << duration_8.count() << "微秒" << endl;
     vector<string> intersection_string;
     decode(intersection,data2Sk,intersection_string);
+    auto st_time_9 = chrono::high_resolution_clock::now();
+    auto duration_9 = chrono::duration_cast<std::chrono::microseconds>(st_time_9 - st_time_8);
+    outFile << "计算时间：" << duration_9.count() << "微秒" << endl;
     // 打印交集结果
-    cout << "intersection is:";
+    cout << "intersection is:" << endl;
+    // outFile << "intersection is: "<< endl;
     for (string elem : intersection_string) {
         cout << elem << endl;
+        // outFile << elem << endl;
     }
     cout << endl;
-
+    // outFile << endl;
+    auto end_time_1 = chrono::high_resolution_clock::now();
+    auto duration_1 = chrono::duration_cast<std::chrono::microseconds>(end_time_1 - st_time_1);
+    cout << "intersection is:" << endl;
+    cout << "计算时间：" << duration_1.count() << "微秒" << endl;
+    cout << "通信开销：" << com_bit << endl;
+    outFile << "计算时间：" << duration_1.count() << "微秒" << endl;
+    outFile << "通信开销：" << com_bit << endl;
+    outFile.close();
     return 0;
 }

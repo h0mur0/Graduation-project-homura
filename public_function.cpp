@@ -8,6 +8,8 @@
 #include <map>
 #include <fstream>
 #include <sstream>
+#include <chrono> // 包含计时功能
+#include <unordered_map>
 #include "public_function.h"
 
 
@@ -132,8 +134,14 @@ void print_help() {
 void parse_args(int argc, char* argv[], int& M, vector<string>& fileNames, vector<int>& N) {
     // 默认值
     M = -1;
+    ofstream outFile0("output.txt",ios::app);
+    auto time1 = chrono::high_resolution_clock::now();
     fileNames.clear();
     N.clear();
+    auto time2 = chrono::high_resolution_clock::now();
+    auto duration_2 = chrono::duration_cast<std::chrono::microseconds>(time2 - time1);
+    outFile0 << "解析时间："<< duration_2.count() << endl;
+    outFile0.close();
 
     // 命令行参数解析
     int i = 1;
@@ -224,7 +232,11 @@ void parse_args(int argc, char* argv[], int& M, vector<string>& fileNames, vecto
 
 
 // encode函数
-void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& data2Sk, vector<vector<int>>& P, int& K) {
+void encode(const vector<string>& fileNames, vector<int>& Sk, unordered_map<string, int>& data2Sk, vector<vector<int>>& P, int& K) {
+    // 预分配Sk的大小，最大为110000
+    Sk.reserve(110000);
+    data2Sk.reserve(110000);
+
     // 遍历每个文件名
     for (int i = 0; i < fileNames.size(); ++i) {
         ifstream file(fileNames[i]);
@@ -233,20 +245,20 @@ void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& 
 
         // 逐行读取文件中的数据
         while (getline(file, line)) {
-            // 处理行中的空格，可能需要去掉前后空格
-            string data = line;
-            data.erase(0, data.find_first_not_of(" \t"));
-            data.erase(data.find_last_not_of(" \t") + 1);
+            // 使用stringstream去掉前后空格并读取数据
+            stringstream ss(line);
+            string data;
+            ss >> data;  // 提取第一个单词并自动去除前后空格
 
             // 判断该数据是否已经存在于data2Sk中
-            if (data2Sk.find(data) != data2Sk.end()) {
+            auto it = data2Sk.find(data);
+            if (it != data2Sk.end()) {
                 // 如果存在，将当前数据的Sk值加入P[i]中
-                int existingSk = data2Sk[data];
-                currentFileData.push_back(existingSk);
+                currentFileData.push_back(it->second);
             } else {
                 // 如果不存在，新增一个Sk值
                 int newSk = Sk.size();
-                Sk.push_back(newSk);
+                Sk.push_back(newSk);  // 直接使用push_back，因为预先reserve了空间
                 data2Sk[data] = newSk;
                 currentFileData.push_back(newSk);
             }
@@ -257,10 +269,15 @@ void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& 
 
     // 设置K为Sk的长度
     K = Sk.size();
+    cout << "intersection is:" << endl;
+    ofstream outFile2("output.txt",ios::app);
+    cout << "K的大小：" <<K << endl;
+    outFile2 << "K的大小：" <<K << endl;
+    outFile2.close();
 }
 
 // decode函数
-void decode(const vector<int>& intersection, const map<string, int>& data2Sk, vector<string>& intersection_string) {
+void decode(const vector<int>& intersection, const unordered_map<string, int>& data2Sk, vector<string>& intersection_string) {
     // 遍历每个整数，将对应的字符串加入intersection_string中
     for (int a : intersection) {
         for (const auto& pair : data2Sk) {

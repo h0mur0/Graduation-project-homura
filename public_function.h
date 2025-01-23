@@ -4,6 +4,7 @@
 #include <vector>
 #include <tuple>
 #include <map>
+#include <unordered_map>
 
 using namespace std;
 
@@ -26,7 +27,7 @@ int select_L(int M);
 int select_leader(const vector<vector<int>>& P, const vector<int>& N, const int& M);
 void print_help();
 void parse_args(int argc, char* argv[], int& M, vector<string>& fileNames, vector<int>& N);
-void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& data2Sk, vector<vector<int>>& P, int& K);
-void decode(const vector<int>& intersection, const map<string, int>& data2Sk, vector<string>& intersection_string);
+void encode(const vector<string>& fileNames, vector<int>& Sk, unordered_map<string, int>& data2Sk, vector<vector<int>>& P, int& K);
+void decode(const vector<int>& intersection, const unordered_map<string, int>& data2Sk, vector<string>& intersection_string);
 
 #endif // PUBLIC_FUNCTION_H
