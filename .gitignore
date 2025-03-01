@@ -3,3 +3,5 @@
 *.txt
 para.cpp
 para.h
+libmysql.dll
+tmp
