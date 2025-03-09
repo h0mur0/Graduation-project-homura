@@ -4,6 +4,8 @@
 #include <vector>
 #include <tuple>
 #include <map>
+#include <iostream>
+#include <list>
 
 using namespace std;
 
@@ -21,6 +23,11 @@ bool is_prime(int n, int k = 20);
 
 // 查找大于 M 的下一个素数
 int select_L(int M);
+struct MappingResult {
+    std::vector<std::vector<int>> mappedVector;
+    std::unordered_map<int, int> forwardMap;
+    std::vector<int> reverseMap;
+};
 
 // 选择最优的领导者
 int select_leader(const vector<vector<int>>& P, const vector<int>& N, const int& M);
@@ -28,5 +35,45 @@ void print_help();
 void parse_args(int argc, char* argv[], int& M, vector<string>& fileNames, vector<int>& N);
 void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& data2Sk, vector<vector<int>>& P, int& K);
 void decode(const vector<int>& intersection, const map<string, int>& data2Sk, vector<string>& intersection_string);
+MappingResult mapVectors(const vector<int>& full, const vector<vector<int>>& inputVectors);
+vector<int> reverseMapVectors(const std::vector<int>& mappedVector, const std::vector<int>& reverseMapping);
+
+class CuckooHashTableConsumer {
+    private:
+        int size;
+        int maxSteps;
+    
+        int hash1(int key);
+        int hash2(int key);
+        int hash3(int key);
+        std::vector<int> hashFunctions(int key);
+        void rehash();
+    
+    public:
+        CuckooHashTableConsumer(int initSize = 100000, int maxSteps = 5);
+        bool insert(int key);
+        std::vector<int> table;
+        bool search(int key);
+        bool remove(int key);
+        void display();
+    };
+    
+class CuckooHashTableProducer {
+private:
+    int size;
+    int bucket_capacity;
+
+    int hash1(int key);
+    int hash2(int key);
+    int hash3(int key);
+    std::vector<int> hashFunctions(int key);
+
+public:
+    CuckooHashTableProducer(int size = 11, int bucket_capacity = 100000);
+    std::vector<std::vector<int>> table;
+    void insert(int key);
+    void display();
+};
+    
 
 #endif // PUBLIC_FUNCTION_H

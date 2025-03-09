@@ -8,6 +8,9 @@
 #include <map>
 #include <fstream>
 #include <sstream>
+#include <list>
+#include <unordered_map>
+#include <stdexcept>
 #include "public_function.h"
 
 
@@ -269,5 +272,163 @@ void decode(const vector<int>& intersection, const map<string, int>& data2Sk, ve
                 break;
             }
         }
+    }
+}
+
+
+
+// 创建映射并转换向量
+MappingResult mapVectors(const std::vector<int>& full, const std::vector<std::vector<int>>& inputVectors) {
+    std::unordered_map<int, int> mapping;
+    std::vector<int> reverseMapping;
+    std::vector<std::vector<int>> result;
+
+    // 创建映射
+    int index = 0;
+    for (int num : full) {
+        if (mapping.find(num) == mapping.end()) {
+            mapping[num] = index++;
+            reverseMapping.push_back(num);
+        }
+    }
+
+    // 转换输入向量
+    for (const auto& vec : inputVectors) {
+        std::vector<int> tmp;
+        for (int num : vec) {
+            if (mapping.find(num) == mapping.end()) {
+                throw std::runtime_error("Error: Element not found in mapping.");
+            }
+            tmp.push_back(mapping[num]);
+        }
+        result.push_back(tmp);
+    }
+
+    return {result, mapping, reverseMapping};
+}
+
+// 反向解码
+std::vector<int> reverseMapVectors(const std::vector<int>& mappedVector, const std::vector<int>& reverseMapping) {
+    std::vector<int> originalVectors;
+    int index = 0;
+    int mappedValue = mappedVector[index++];
+    if (mappedValue < 0 || mappedValue >= reverseMapping.size()) {
+        throw std::runtime_error("Error: Invalid mapped value.");
+    }
+    originalVectors.push_back(reverseMapping[mappedValue]);
+
+    return originalVectors;
+}
+
+
+CuckooHashTableConsumer::CuckooHashTableConsumer(int initSize, int maxSteps)
+    : size(initSize), maxSteps(maxSteps) {
+    table.assign(size, -1);
+}
+
+int CuckooHashTableConsumer::hash1(int key) {
+    return key % size;
+}
+
+int CuckooHashTableConsumer::hash2(int key) {
+    return (key * 3) % size;
+}
+
+int CuckooHashTableConsumer::hash3(int key) {
+    return (key * 7) % size;
+}
+
+std::vector<int> CuckooHashTableConsumer::hashFunctions(int key) {
+    return {hash1(key), hash2(key), hash3(key)};
+}
+
+void CuckooHashTableConsumer::rehash() {
+    std::vector<int> oldData;
+    for (int key : table) {
+        if (key != -1) oldData.push_back(key);
+    }
+    size *= 2;
+    table.assign(size, -1);
+    for (int key : oldData) {
+        insert(key);
+    }
+}
+
+bool CuckooHashTableConsumer::insert(int key) {
+    for (int i = 0; i < maxSteps; ++i) {
+        for (int idx : hashFunctions(key)) {
+            if (table[idx] == -1) {
+                table[idx] = key;
+                return true;
+            }
+        }
+
+        int index = hashFunctions(key)[rand() % 3];
+        std::swap(table[index], key);
+    }
+    rehash();
+    return insert(key);
+}
+
+bool CuckooHashTableConsumer::search(int key) {
+    for (int idx : hashFunctions(key)) {
+        if (table[idx] == key) return true;
+    }
+    return false;
+}
+
+bool CuckooHashTableConsumer::remove(int key) {
+    for (int idx : hashFunctions(key)) {
+        if (table[idx] == key) {
+            table[idx] = -1;
+            return true;
+        }
+    }
+    return false;
+}
+
+void CuckooHashTableConsumer::display() {
+    std::cout << "Table: ";
+    for (int val : table) {
+        if (val == -1)
+            std::cout << " - ";
+        else
+            std::cout << " " << val << " ";
+    }
+    std::cout << std::endl;
+}
+
+
+
+// CuckooHashTableProducer Implementation
+
+CuckooHashTableProducer::CuckooHashTableProducer(int size, int bucket_capacity)
+    : size(size), bucket_capacity(bucket_capacity), table(size) {}
+
+int CuckooHashTableProducer::hash1(int key) {
+    return key % size;
+}
+
+int CuckooHashTableProducer::hash2(int key) {
+    return (key * 3) % size;
+}
+
+int CuckooHashTableProducer::hash3(int key) {
+    return (key * 7) % size;
+}
+
+std::vector<int> CuckooHashTableProducer::hashFunctions(int key) {
+    return {hash1(key), hash2(key), hash3(key)};
+}
+
+void CuckooHashTableProducer::insert(int key) {
+    for (int idx : hashFunctions(key)) {
+        table[idx].push_back(key);
+    }
+}
+
+void CuckooHashTableProducer::display() {
+    for (int i = 0; i < size; i++) {
+        std::cout << "Index " << i << ": " << table[i].size() << std::endl;
     }
 }

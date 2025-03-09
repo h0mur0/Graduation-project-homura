@@ -4,6 +4,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <map>
+#include <algorithm>
+#include <unordered_map>
 #include <memory>  // 引入智能指针头文件
 #include "client.h"
 #include "leader.h"
@@ -24,7 +26,7 @@ vector<client> clients;  // 客户端列表
 vector<database> databases;  // 数据库列表
 shared_ptr<leader> ld;  // 领导者智能指针
 shared_ptr<client> special_client;  // 特殊客户端智能指针
-int R;  // 领导者的客户端数量
+int R;  // 领导者的元素数量
 int L;  // 素数 L
 int c;  // 随机系数
 shared_ptr<channel> chan;  // 信道智能指针
@@ -117,13 +119,107 @@ int main(int argc, char* argv[]) {
     parse_args(argc,argv,M,fileNames,N);
     encode(fileNames, Sk, data2Sk, P, K);
     initial();  // 初始化
+    // pre_cuckoo_hash();
+    int max_Ni = *std::max_element(N.begin(), N.end());
+    vector<int> dataset = ld -> P_leader;
+    int size_per_group = dataset.size() / (max_Ni - 1);
+    int size_bucket = 1.5 * size_per_group;
+    CuckooHashTableProducer cuckoo_hash_table_producer(size_bucket, 2 * size_bucket);
+    for (const auto& element : Sk) {
+        cuckoo_hash_table_producer.insert(element);
+    }
+    vector<CuckooHashTableConsumer> hash_tables_for_leader;
+    for (int i = 0; i < max_Ni; ++i) {
+        hash_tables_for_leader.push_back(CuckooHashTableConsumer(size_bucket,5)); // 创建并存储哈希表实例
 
-    map<int, vector<tuple<int, int, int>>> element_to_position = query();  // 查询阶段
-    create_randomness();  // 生成并发送随机数
-    reply();  // 数据库生成并发送回复
-    vector<int> intersection = get_intersection(element_to_position);  // 获取交集
+        for (int j = i * size_per_group; j < (i + 1) * size_per_group && j < dataset.size(); ++j) {
+            hash_tables_for_leader[i].insert(dataset[j]);
+        }
+    }
+    // for (int i = 0; i < max_Ni; ++i) {
+    //     std::cout << "HashTable " << i << ":\n";
+    //     hash_tables_for_leader[i].display();
+    // }
+    vector<CuckooHashTableProducer> hash_tables_for_clients;   
+    for (int i = 0; i < P.size(); i++) {
+        hash_tables_for_clients.push_back(CuckooHashTableProducer(size_bucket, 2 * size_bucket));
+        if (i == ld -> leader_id){
+            continue;
+        }
+        for (const auto& element : P[i]) {
+            hash_tables_for_clients[i].insert(element);
+        }
+    }
+    // for (int i = 0; i < max_Ni; ++i) {
+    //     std::cout << "HashTable " << i << ":\n";
+    //     hash_tables_for_clients[i].display();
+    // }
+    vector<int> full_intersection;
+    for (int i=0;i<size_bucket;i++){
+        for (auto &client : clients){
+            client.client_recv_from_client = vector<vector<int>>();
+            client.client_send_to_client = vector<int>();
+            client.client_send_to_database_s = vector<vector<int>>(N[client.client_id], vector<int>());
+            client.client_send_to_database_t = vector<vector<int>>(N[client.client_id], vector<int>());
+        }
+        special_client->client_recv_from_client = vector<vector<int>>();
+        special_client->client_send_to_client = vector<int>();
+        special_client->client_send_to_database_s = vector<vector<int>>(N[special_client->client_id], vector<int>());
+        special_client->client_send_to_database_t = vector<vector<int>>(N[special_client->client_id], vector<int>());
+        ld -> leader_recv = vector<vector<vector<int>>>(M);
+        ld -> leader_send = vector<vector<vector<vector<int>>>>(M);
+        for (int i = 0; i < M; ++i) {
+            ld -> leader_send[i].resize(N[i]); 
+            ld -> leader_recv[i].resize(N[i]);
+        }
+        for (auto& database : databases){
+            database.database_recv_from_client_s.clear();
+            database.database_recv_from_client_t.clear();
+            database.database_recv_from_leader.clear();
+            database.database_send.clear();
+        }
+        vector<int> full = cuckoo_hash_table_producer.table[i];
+        vector<vector<int>> leader_recode;
+        vector<int> tmp;
+        //更新leader元素
+        for (const auto& instance : hash_tables_for_leader){
+            if (instance.table[i]!=-1){
+                tmp.push_back(instance.table[i]);
+            }
+        }
+        leader_recode.push_back(tmp);
+        MappingResult map_result = mapVectors(full,leader_recode);
+        vector<int> new_P_leader = map_result.mappedVector[0];
+        // 更新R
+        R = new_P_leader.size();
+        ld -> P_leader = new_P_leader;
+        //更新client元素
+        vector<vector<int>> client_recode;
+        for (const auto& instance : hash_tables_for_clients){
+            client_recode.push_back(instance.table[i]);
+        }
+        MappingResult map_result2 = mapVectors(full,client_recode);
+        vector<vector<int>> new_P_client = map_result2.mappedVector;
+        for (auto& database : databases){
+            database.P_client = new_P_client[database.client_id];
+        }
+        //更新K
+        K = map_result.reverseMap.size();
+        map<int, vector<tuple<int, int, int>>> element_to_position = query();  // 查询阶段
+        create_randomness();  // 生成并发送随机数
+        reply();  // 数据库生成并发送回复
+        vector<int> intersection = get_intersection(element_to_position);  // 获取交集
+        if (intersection.size()!=0){
+            vector<int> original_intersection = reverseMapVectors(intersection,map_result.reverseMap);
+            for (const auto element : original_intersection){
+                full_intersection.push_back(element);
+            }
+        }
+        
+    }
+    
     vector<string> intersection_string;
-    decode(intersection,data2Sk,intersection_string);
+    decode(full_intersection,data2Sk,intersection_string);
     // 打印交集结果
     cout << "intersection is:";
     for (string elem : intersection_string) {

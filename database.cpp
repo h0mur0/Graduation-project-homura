@@ -2,6 +2,7 @@
 #include <vector>
 #include <cmath>
 #include <string>
+#include <unordered_map>
 
 #include "database.h"
 
@@ -11,6 +12,7 @@ using namespace std;
 // 构造函数实现
 database::database(vector<int>& P_client, int client_id, int database_id)
     : P_client(P_client), client_id(client_id), database_id(database_id) {}
+    // TODO: 按cuckoo哈希结果重排数据
 
 // 创建并返回关联向量
 vector<int> database::create_incidence_vector(int K) {
