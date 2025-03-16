@@ -1,0 +1,1 @@
+g++ -g main.cpp public_function.cpp channel.cpp client.cpp database.cpp leader.cpp -o main      

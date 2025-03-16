@@ -125,6 +125,7 @@ int main(int argc, char* argv[]) {
     vector<string> intersection_string;
     decode(intersection,data2Sk,intersection_string);
     // 打印交集结果
+    cout <<"交集大小："<< intersection.size() << endl;
     cout << "intersection is:";
     for (string elem : intersection_string) {
         cout << elem << endl;
