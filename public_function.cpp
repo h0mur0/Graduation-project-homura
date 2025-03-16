@@ -11,6 +11,8 @@
 #include <list>
 #include <unordered_map>
 #include <stdexcept>
+#include <cstdint>
+#include <algorithm>
 #include "public_function.h"
 
 
@@ -225,9 +227,8 @@ void parse_args(int argc, char* argv[], int& M, vector<string>& fileNames, vecto
     }
 }
 
-
 // encode函数
-void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& data2Sk, vector<vector<int>>& P, int& K) {
+void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& data2Sk, vector<vector<int>>& P) {
     // 遍历每个文件名
     for (int i = 0; i < fileNames.size(); ++i) {
         ifstream file(fileNames[i]);
@@ -259,7 +260,7 @@ void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& 
     }
 
     // 设置K为Sk的长度
-    K = Sk.size();
+    // K = Sk.size();
 }
 
 // decode函数
@@ -275,7 +276,60 @@ void decode(const vector<int>& intersection, const map<string, int>& data2Sk, ve
     }
 }
 
+uint64_t fnv1a_64(const char* data, size_t len) {
+    const uint64_t prime = 0x00000100000001B3; // 1099511628211
+    uint64_t hash = 0xCBF29CE484222325;         // 14695981039346656037
 
+    for (size_t i = 0; i < len; ++i) {
+        hash ^= static_cast<uint64_t>(data[i]);
+        hash *= prime;
+    }
+    return hash;
+}
+
+uint64_t murmur3_64(const char* key, uint64_t len, uint64_t seed = 0) {
+    const uint64_t c1 = 0xcc9e2d51;
+    const uint64_t c2 = 0x1b873593;
+    const uint64_t r1 = 15;
+    const uint64_t r2 = 13;
+    const uint64_t m = 5;
+    const uint64_t n = 0xe6546b64;
+
+    uint64_t hash = seed;
+    const uint64_t* blocks = (const uint64_t*)key;
+    for (uint64_t i = 0; i < len / 4; i++) {
+        uint64_t k = blocks[i];
+        k *= c1;
+        k = (k << r1) | (k >> (32 - r1));
+        k *= c2;
+
+        hash ^= k;
+        hash = (hash << r2) | (hash >> (32 - r2));
+        hash = hash * m + n;
+    }
+
+    // 处理剩余字节
+    const uint8_t* tail = (const uint8_t*)(key + (len / 4) * 4);
+    uint64_t k1 = 0;
+    switch (len & 3) {
+        case 3: k1 ^= tail[2] << 16;
+        case 2: k1 ^= tail[1] << 8;
+        case 1: k1 ^= tail[0];
+                k1 *= c1;
+                k1 = (k1 << r1) | (k1 >> (32 - r1));
+                k1 *= c2;
+                hash ^= k1;
+    }
+
+    hash ^= len;
+    hash ^= (hash >> 16);
+    hash *= 0x85ebca6b;
+    hash ^= (hash >> 13);
+    hash *= 0xc2b2ae35;
+    hash ^= (hash >> 16);
+
+    return hash;
+}
 
 // 创建映射并转换向量
 MappingResult mapVectors(const std::vector<int>& full, const std::vector<std::vector<int>>& inputVectors) {
@@ -299,7 +353,9 @@ MappingResult mapVectors(const std::vector<int>& full, const std::vector<std::ve
             if (mapping.find(num) == mapping.end()) {
                 throw std::runtime_error("Error: Element not found in mapping.");
             }
-            tmp.push_back(mapping[num]);
+            if (find(tmp.begin(), tmp.end(), mapping[num]) == tmp.end()){
+                tmp.push_back(mapping[num]);
+            }
         }
         result.push_back(tmp);
     }
@@ -310,13 +366,9 @@ MappingResult mapVectors(const std::vector<int>& full, const std::vector<std::ve
 // 反向解码
 std::vector<int> reverseMapVectors(const std::vector<int>& mappedVector, const std::vector<int>& reverseMapping) {
     std::vector<int> originalVectors;
-    int index = 0;
-    int mappedValue = mappedVector[index++];
-    if (mappedValue < 0 || mappedValue >= reverseMapping.size()) {
-        throw std::runtime_error("Error: Invalid mapped value.");
+    for (const auto& element: mappedVector){
+        originalVectors.push_back(reverseMapping[element]);
     }
-    originalVectors.push_back(reverseMapping[mappedValue]);
-
     return originalVectors;
 }
 
@@ -327,15 +379,21 @@ CuckooHashTableConsumer::CuckooHashTableConsumer(int initSize, int maxSteps)
 }
 
 int CuckooHashTableConsumer::hash1(int key) {
-    return key % size;
+    string h = to_string(key);
+    uint64_t hash = fnv1a_64(h.data(),h.size());
+    return hash % size;
 }
 
 int CuckooHashTableConsumer::hash2(int key) {
-    return (key * 3) % size;
+    string h = to_string(key);
+    uint64_t hash = murmur3_64(h.data(),h.size(), 0x1234);
+    return hash % size;
 }
 
 int CuckooHashTableConsumer::hash3(int key) {
-    return (key * 7) % size;
+    string h = to_string(key);
+    uint64_t hash = murmur3_64(h.data(),h.size(), 0x5678);
+    return hash % size;
 }
 
 std::vector<int> CuckooHashTableConsumer::hashFunctions(int key) {
@@ -406,15 +464,21 @@ CuckooHashTableProducer::CuckooHashTableProducer(int size, int bucket_capacity)
     : size(size), bucket_capacity(bucket_capacity), table(size) {}
 
 int CuckooHashTableProducer::hash1(int key) {
-    return key % size;
+    string h = to_string(key);
+    uint64_t hash = fnv1a_64(h.data(),h.size());
+    return hash % size;
 }
 
 int CuckooHashTableProducer::hash2(int key) {
-    return (key * 3) % size;
+    string h = to_string(key);
+    uint64_t hash = murmur3_64(h.data(),h.size(), 0x1234);
+    return hash % size;
 }
 
 int CuckooHashTableProducer::hash3(int key) {
-    return (key * 7) % size;
+    string h = to_string(key);
+    uint64_t hash = murmur3_64(h.data(),h.size(), 0x5678);
+    return hash % size;
 }
 
 std::vector<int> CuckooHashTableProducer::hashFunctions(int key) {

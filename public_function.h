@@ -5,6 +5,7 @@
 #include <tuple>
 #include <map>
 #include <iostream>
+#include <cstdint>
 #include <list>
 
 using namespace std;
@@ -33,11 +34,12 @@ struct MappingResult {
 int select_leader(const vector<vector<int>>& P, const vector<int>& N, const int& M);
 void print_help();
 void parse_args(int argc, char* argv[], int& M, vector<string>& fileNames, vector<int>& N);
-void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& data2Sk, vector<vector<int>>& P, int& K);
+void encode(const vector<string>& fileNames, vector<int>& Sk, map<string, int>& data2Sk, vector<vector<int>>& P);
 void decode(const vector<int>& intersection, const map<string, int>& data2Sk, vector<string>& intersection_string);
 MappingResult mapVectors(const vector<int>& full, const vector<vector<int>>& inputVectors);
 vector<int> reverseMapVectors(const std::vector<int>& mappedVector, const std::vector<int>& reverseMapping);
-
+uint64_t fnv1a_64(const char* data, size_t len);
+uint64_t murmur3_64(const char* key, uint64_t len, uint64_t seed);
 class CuckooHashTableConsumer {
     private:
         int size;

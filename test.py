@@ -1,17 +1,18 @@
-def find_common_lines(file1, file2):
-    with open(file1, 'r', encoding='utf-8') as f1, open(file2, 'r', encoding='utf-8') as f2:
-        lines1 = set(f1.readlines())
-        lines2 = set(f2.readlines())
+def read_file_lines(filename):
+    with open(filename, 'r') as file:
+        return {line.rstrip('\n') for line in file}
 
-    common_lines = lines1.intersection(lines2)
+# 替换为你的文件名列表
+files = ['data1.txt', 'data2.txt', 'data3.txt', 'data4.txt', 'data5.txt']
 
-    return common_lines
+# 读取每个文件的行集合
+line_sets = [read_file_lines(f) for f in files]
 
-# 示例使用
-file1 = "data1.txt"
-file2 = "data2.txt"
-common_lines = find_common_lines(file1, file2)
+# 计算所有集合的交集
+common_lines = set.intersection(*line_sets)
 
-# 输出共同行
-for line in common_lines:
-    print(line.strip())
+# 输出共同行（按字母顺序排序）
+for line in sorted(common_lines):
+    print(line)
+
+print(len(line))
